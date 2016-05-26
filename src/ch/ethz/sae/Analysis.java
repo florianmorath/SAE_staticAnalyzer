@@ -147,6 +147,9 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 			loopHeads.put(l.getHead(), new Counter(0));
 			backJumps.put(l.getBackJumpStmt(), new Counter(0));
 		}
+
+		stateTracer = new HashMap<JVirtualInvokeExpr, Abstract1>();
+
 	}
 
 	void run() {
@@ -320,6 +323,12 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 				if (o_branchout != null) {
 					op1.set(o_branchout);
 					op1.setStatement(s);
+				}
+			}
+
+			if (s instanceof JInvokeStmt) {
+				if (s.getInvokeExpr() instanceof JVirtualInvokeExpr) {
+					stateTracer.put((JVirtualInvokeExpr) s.getInvokeExpr(), o.joinCopy(man, o_branchout));
 				}
 			}
 
@@ -530,6 +539,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 	public static String reals[] = { "x" };
 	public SootClass jclass;
 	private String class_ints[]; // integer class variables where the method is
+	public HashMap<JVirtualInvokeExpr, Abstract1> stateTracer;
 
 	public static String resourceArrayName = "PrinterArray";
 	public static String functionName = "sendJob";

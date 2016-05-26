@@ -4,7 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import apron.ApronException;
+import apron.Interval;
+import apron.MpqScalar;
+import apron.Scalar;
 import soot.Unit;
+import apron.*;
 
 import soot.jimple.InvokeExpr;
 import soot.jimple.internal.JInvokeStmt;
@@ -60,32 +64,32 @@ public class Verifier {
 		}
 
 		if (programCorrectFlag == 1) {
-            System.out.println(analyzedClass + " NO_OUT_OF_BOUNDS");
-        } else {
-            System.out.println(analyzedClass + " MAY_OUT_OF_BOUNDS");
-        }
+			System.out.println(analyzedClass + " NO_OUT_OF_BOUNDS");
+		} else {
+			System.out.println(analyzedClass + " MAY_OUT_OF_BOUNDS");
+		}
 	}
 
 	private static boolean verifyDivisionByZero(SootMethod method, Analysis fixPoint) {
 		for (Unit u : method.retrieveActiveBody().getUnits()) {
 			AWrapper state = fixPoint.getFlowBefore(u);
 			try {
-		    		if (state.get().isBottom(Analysis.man))
-	    			// unreachable code
-					continue;
+				if (state.get().isBottom(Analysis.man))
+				// unreachable code
+				continue;
 			} catch (ApronException e) {
 				e.printStackTrace();
 			}
 
 			//TODO: Check that all divisors are not zero
-	    }
+		}
 
 		//Return false if the method may have division by zero errors
-	    return false;
+		return false;
 	}
 
 	private static boolean verifyBounds(SootMethod method, Analysis fixPoint,
-			PAG pointsTo) {
+	PAG pointsTo) {
 
 		//TODO: Create a list of all allocation sites for PrinterArray
 		Map<InvokeExpr, SootMethod> invokes = pointsTo.callToMethod;
@@ -104,17 +108,17 @@ public class Verifier {
 				e.printStackTrace();
 			}
 
-
+			// Constuctor
 			if (u instanceof JInvokeStmt && ((JInvokeStmt) u).getInvokeExpr() instanceof JSpecialInvokeExpr) {
 				// TODO: Get the size of the PrinterArray given as argument to the constructor
 				InvokeExpr e = ((JInvokeStmt) u).getInvokeExpr();
-				// if(e.toString().contains("<PrinterArray: void <init>(int)>")) { ... } ??
 				JimpleLocal constrLoc = (JimpleLocal)((JSpecialInvokeExpr) e).getBaseBox().getValue();
-				int size = Integer.parseInt(e.getArgBox(0).getValue().toString());
+				Value val = e.getArgBox(0).getValue();
+				int size = Integer.parseInt(val.toString());
 				paMapToSize.put(constrLoc, size);
-
 			}
 
+			// Call of sendJob
 			if (u instanceof JInvokeStmt && ((JInvokeStmt) u).getInvokeExpr() instanceof JVirtualInvokeExpr) {
 
 				JInvokeStmt jInvStmt = (JInvokeStmt)u;
@@ -122,15 +126,13 @@ public class Verifier {
 				JVirtualInvokeExpr invokeExpr = (JVirtualInvokeExpr)jInvStmt.getInvokeExpr();
 
 				Local base = (Local) invokeExpr.getBase();
-				DoublePointsToSet pts = (DoublePointsToSet) pointsTo
-						.reachingObjects(base);
+				DoublePointsToSet pts = (DoublePointsToSet) pointsTo.reachingObjects(base);
 
 				if (invokeExpr.getMethod().getName().equals(Analysis.functionName)) {
 
 
 					// TODO: Check whether the 'sendJob' method's argument is within bounds
-
-				 	JimpleLocal key = (JimpleLocal)(invokeExpr).getBaseBox().getValue();
+					JimpleLocal key = (JimpleLocal)(invokeExpr).getBaseBox().getValue();
 					PointsToSet set = pointsTo.reachingObjects(key);
 					Value arg = (Value) invokeExpr.getArg(0);
 					sendJobCalls.add(new Triple<PointsToSet, Value, JVirtualInvokeExpr>(set, arg, (JVirtualInvokeExpr) invokeExpr));
@@ -138,16 +140,17 @@ public class Verifier {
 					for(Triple<PointsToSet, Value, JVirtualInvokeExpr> call : sendJobCalls) {
 						for(JimpleLocal pa : paMapToSize.keySet()) {
 							if(call.x.hasNonEmptyIntersection(pointsTo.reachingObjects(pa))) {
-								List<Integer> posVal = null; // = fixPoint.getPossibleValues(call.y, call.z);  // implement getPossibleValues??
-								if(posVal==null) break;
+								Interval bounds = fixPoint.getInterval(state, call.y);
+								List<Integer> possibleValues = getPossibleValues(bounds, call.y, fixPoint, call.z, state.man);
+								if (possibleValues == null) break;
 								int size = paMapToSize.get(pa);
-								for (Integer i : posVal)
-									if (i < 0 || i > size) {
+								for (Integer i : possibleValues)
+									if (i < 0 || i > size - 1)
 										return false;
-									}
 							}
 						}
 					}
+
 					/*
 					// Visit all allocation sites that the base pointer may reference
 					MyP2SetVisitor visitor = new MyP2SetVisitor();
@@ -156,10 +159,59 @@ public class Verifier {
 				}
 			}
 		}
-
 		return true;
 		//return false;
 	}
+
+
+	public static List<Integer> getPossibleValues(Interval ival,Value value,Analysis fixPoint, JVirtualInvokeExpr invokExpr, Manager man){
+		List<Integer> possibleValues = new ArrayList<Integer>();
+		try {
+			if(value instanceof JimpleLocal) {
+				int lowerBound = getInfForInterval(ival);
+				int upperBound = getSupForInterval(ival);
+				for (int i = lowerBound; i <= upperBound; i++) {
+					Scalar leftLowerBound = new MpqScalar();
+					leftLowerBound.setInfty(-1);
+					Scalar leftUpperBound = new MpqScalar(i-1);
+					Scalar rightLowerBound = new MpqScalar(i+1);
+					Scalar rightUpperBound = new MpqScalar();
+					rightUpperBound.setInfty(1);
+					Boolean inLeftInterval = fixPoint.stateTracer.get(invokExpr).satisfy(man, ((JimpleLocal) value).getName(), new Interval(leftLowerBound, leftUpperBound));
+					Boolean inRightInterval = fixPoint.stateTracer.get(invokExpr).satisfy(man, ((JimpleLocal) value).getName(), new Interval(rightLowerBound, rightUpperBound));
+					if(!(inLeftInterval || inRightInterval)) {
+						possibleValues.add(i);
+					}
+				}
+			} else if (value instanceof IntConstant) {
+				possibleValues.add(((IntConstant) value).value);
+			}
+		} catch (ApronException e ) {
+			e.printStackTrace();
+		}
+		return possibleValues;
+
+	}
+	
+	public static int getInfForInterval(Interval ival) {
+        int result;
+        try {
+            result  = Integer.parseInt(ival.inf().toString());
+        } catch (Exception e) {
+            result =-1;
+        }
+        return result;
+    }
+    public static int getSupForInterval(Interval ival) {
+        int result;
+        try {
+            result  = Integer.parseInt(ival.sup().toString());
+        } catch (Exception e) {
+            result = 100;
+        }
+        return result;
+    }
+
 
 	private static SootClass loadClass(String name) {
 		SootClass c = Scene.v().loadClassAndSupport(name);

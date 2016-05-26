@@ -4,7 +4,7 @@
  */
 public class Test1 {
     public static void foo() {
-        PrinterArray pa = new PrinterArray(5);
-        pa.sendJob(2);
+    	PrinterArray pa = new PrinterArray(5);
+        pa.sendJob(10);
     }
 }
