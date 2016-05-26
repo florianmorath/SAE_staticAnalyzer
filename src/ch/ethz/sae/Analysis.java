@@ -53,9 +53,9 @@ import soot.jimple.*;
 import soot.jimple.internal.*;
 
 public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
-	
+
 	private static final int WIDENING_THRESHOLD = 6;
-	
+
 	private HashMap<Unit, Counter> loopHeads, backJumps;
 
 	private void recordIntLocalVars() {
@@ -157,7 +157,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 		System.err.println("Can't handle " + what);
 	}
 
-	
+
 	private void handleIf(AbstractBinopExpr eqExpr, Abstract1 in, AWrapper ow,
 			AWrapper ow_branchout) throws ApronException {
 
@@ -166,7 +166,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 
 		Texpr1Node lAr = null;
 		Texpr1Node rAr = null;
-		
+
 		Texpr1Node resultNodeLR, resultNodeRL;
 
         Tcons1 constraint = null;
@@ -185,7 +185,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 			System.out.println("left: unexpected:" + left.getClass()
 					+ " name:" + ((JimpleLocal) left).getName());
 		}
-		        
+
         if(right instanceof IntConstant) {
             rAr = new Texpr1CstNode(new MpqScalar(((IntConstant) right).value));
         }
@@ -195,7 +195,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 
         resultNodeLR = new Texpr1BinNode(Texpr1BinNode.OP_SUB, lAr, rAr);
         resultNodeRL = new Texpr1BinNode(Texpr1BinNode.OP_SUB, rAr, lAr);
-        
+
         if(eqExpr instanceof JEqExpr) {
             constraint = new Tcons1(env, Tcons1.DISEQ, resultNodeRL);
             constraintBranchout = new Tcons1(env, Tcons1.EQ, resultNodeRL);
@@ -220,29 +220,27 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
             constraint = new Tcons1(env, Tcons1.SUPEQ, resultNodeLR);
             constraintBranchout = new Tcons1(env, Tcons1.SUP, resultNodeRL);
         }
-        
+
 
         Tcons1[] fallout = new Tcons1[1];
         Tcons1[] branchout = new Tcons1[1];
         Abstract1 a1, a2;
-        
+
         fallout[0] = constraint;
         branchout[0] = constraintBranchout;
         a1 = new Abstract1(man, fallout);
         a2 = new Abstract1(man, branchout);
-        
+
         ow.get().meet(man, a1);
         ow_branchout.get().meet(man, a2);
 
 	}
-	// Stefan intreaba:
-	//1. where to identify loops to identify widening?
-	//2. meet und join?
-	
+
+
 	@Override
 	protected void flowThrough(AWrapper current, Unit op,
 			List<AWrapper> fallOut, List<AWrapper> branchOuts) {
-		
+
 		Stmt s = (Stmt) op;
 
 		Abstract1 in = ((AWrapper) current).get();
@@ -252,16 +250,16 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 			o = new Abstract1(man, in);
 			Abstract1 o_branchout = new Abstract1(man, in);
 
-						
+
 			if (s instanceof DefinitionStmt) {
 				DefinitionStmt sd = (DefinitionStmt) s;
 				Value left = sd.getLeftOp();
 				Value right = sd.getRightOp();
-				
+
 				// You do not need to handle these cases:
 				if (!(left instanceof JimpleLocal)) {
 					unhandled("1: Assignment to non-variables is not handled.");
-				} else if ((left instanceof JArrayRef) 
+				} else if ((left instanceof JArrayRef)
 						&& (!((((JArrayRef) left).getBase()) instanceof JimpleLocal))) {
 					unhandled("2: Assignment to a non-local array variable is not handled.");
 				}
@@ -273,39 +271,39 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 				if (left.getType() instanceof DoubleType) {
 					return;
 				}
-				
+
 				if ((left.getType() instanceof RefType && !left.getType()
 						.toString().equals(resourceArrayName))
 						|| left.getType() instanceof ArrayType) {
 					return;
 				}
-				
+
 				// Make sure you support all definition statements
 				handleDef(o, left, right);
-				
+
 			} else if (s instanceof JIfStmt) {
 				IfStmt ifs = (JIfStmt) s;
 				Value condition = ifs.getCondition();
-				
+
 				if (condition instanceof JEqExpr
 						|| condition instanceof JNeExpr
 						|| condition instanceof JGeExpr
 						|| condition instanceof JLeExpr
 						|| condition instanceof JLtExpr
 						|| condition instanceof JGtExpr) {
-								
+
 					AWrapper ow = new AWrapper(null);
 					AWrapper ow_branchout = new AWrapper(null);
 
 					AbstractBinopExpr eqExpr = (AbstractBinopExpr) condition;
-					
+
 					// Make sure handleIf supports the conditional expressions above
 					handleIf(eqExpr, in, ow, ow_branchout);
-					
+
 					o = ow.get();
-					o_branchout = ow_branchout.get();			
+					o_branchout = ow_branchout.get();
 				}
-			} 
+			}
 
 			for (Iterator<AWrapper> it = fallOut.iterator(); it.hasNext();) {
 				AWrapper op1 = it.next();
@@ -332,24 +330,24 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 
 	private void handleDef(Abstract1 o, Value left, Value right)
 			throws ApronException {
-		
-		
+
+
 		Texpr1Node lAr = null;
 		Texpr1Node rAr = null;
 		Texpr1Intern xp = null;
         Texpr1BinNode binNode = null;
-		
+
         // check that 'left' is a local variable
 		if (left instanceof JimpleLocal) {
 			String varName = ((JimpleLocal) left).getName();
-			
+
 			// case 1: 'right' is constant
 			if (right instanceof IntConstant) {
 				IntConstant c = ((IntConstant) right);
 				rAr = new Texpr1CstNode(new MpqScalar(c.value));
 				xp = new Texpr1Intern(env, rAr);
 				o.assign(man, varName, xp, null);
-			} 
+			}
 			// case 2: 'right' is a local
 			else if (right instanceof JimpleLocal) {
                 if (env.hasVar(((JimpleLocal) right).getName())) {
@@ -418,7 +416,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 
 	@Override
 	protected AWrapper entryInitialFlow() {
-		
+
 		Abstract1 top = null;
 
 		try {
@@ -430,7 +428,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 		a.man = man;
 		return a;
 	}
-	
+
 	private static class Counter {
 		int value;
 
@@ -438,16 +436,16 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 			value = v;
 		}
 	}
-	
+
 	@Override
 	protected void merge(Unit succNode, AWrapper x, AWrapper y, AWrapper u) {
 		Counter count = loopHeads.get(succNode);
-		
+
 		Abstract1 a1 = x.get();
 		Abstract1 a2 = y.get();
 		Abstract1 a3 = null;
-		
-		try{ 
+
+		try{
 			if (count != null) {
 				++count.value;
 				if (count.value < WIDENING_THRESHOLD) {
@@ -494,11 +492,11 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 		return a;
 
 	}
-	
+
 	public static final boolean isIntValue(Value val) {
 		return val.getType().toString().equals("int") || val.getType().toString().equals("short") || val.getType().toString().equals("byte");
 	}
-	
+
 	public static final Interval getInterval(AWrapper state, Value val) {
 		Interval top = new Interval();
 		top.setTop();
@@ -516,7 +514,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 				interval = state.get().getBound(man, var);
 			} catch (ApronException e) {
 				e.printStackTrace();
-			} 
+			}
 			return interval;
 		}
 		if (val instanceof InvokeExpr) {
@@ -532,7 +530,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 	public static String reals[] = { "x" };
 	public SootClass jclass;
 	private String class_ints[]; // integer class variables where the method is
-	
+
 	public static String resourceArrayName = "PrinterArray";
 	public static String functionName = "sendJob";
 }
