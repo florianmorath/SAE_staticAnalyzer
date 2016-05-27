@@ -28,6 +28,7 @@ import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
 import soot.toolkits.graph.BriefUnitGraph;
+import soot.ValueBox;
 
 public class Verifier {
 
@@ -82,10 +83,35 @@ public class Verifier {
 			}
 
 			//TODO: Check that all divisors are not zero
+			// Get use boxes
+			List<ValueBox> vbList = u.getUseBoxes();
+			// Iterate through all the used boxes
+			for (ValueBox vb : vbList) {
+				// Get the value from the current box
+				Value v = vb.getValue();
+				// Check if it is a division
+				if (v instanceof JDivExpr) {
+					// Yes: then get the divisor of the division
+					Value divisor = ((JDivExpr) v).getOp2();
+					// Case distinction on the type of the divisor
+					// case 1: divisor is a constant
+					if (divisor instanceof IntConstant) {
+						int val = ((IntConstant) divisor).value;
+						if (val == 0)
+							return false;
+					} else if (divisor instanceof JimpleLocal) {
+						Interval i = fixPoint.getInterval(state, divisor);
+						System.out.println("" + i.cmp(new MpqScalar(0)));
+						if (i.cmp(new MpqScalar(0)) == 0 || i.cmp(new MpqScalar(0)) == 1)
+							return false;
+					}
+					
+				}
+			}
 		}
 
 		//Return false if the method may have division by zero errors
-		return false;
+		return true;
 	}
 
 	private static boolean verifyBounds(SootMethod method, Analysis fixPoint,
@@ -192,7 +218,7 @@ public class Verifier {
 		return possibleValues;
 
 	}
-	
+
 	public static int getInfForInterval(Interval ival) {
         int result;
         try {

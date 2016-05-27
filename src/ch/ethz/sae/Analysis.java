@@ -189,7 +189,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 					+ " name:" + ((JimpleLocal) left).getName());
 		}
 
-		
+
         if(right instanceof IntConstant) {
             rAr = new Texpr1CstNode(new MpqScalar(((IntConstant) right).value));
         }
@@ -234,8 +234,8 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
         branchout[0] = constraintBranchout;
         a1 = new Abstract1(man, fallout);
         a2 = new Abstract1(man, branchout);
-        
-        
+
+
         ow.set(in.meetCopy(man, constraint));
         ow_branchout.set(in.meetCopy(man, constraintBranchout));
 
@@ -332,7 +332,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 				if (s.getInvokeExpr() instanceof JVirtualInvokeExpr) {
 					stateTracer.put((JVirtualInvokeExpr) s.getInvokeExpr(), o.joinCopy(man, o_branchout));
 				}
-				// TODO:
+				// TODO (stefan):
 				// else if s.getInvokeExpr() instance of JSpecialInvokeExpr constrTracer.put.(...)
 			}
 
