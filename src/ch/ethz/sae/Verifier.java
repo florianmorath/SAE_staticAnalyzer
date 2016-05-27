@@ -105,7 +105,7 @@ public class Verifier {
 						if (i.cmp(new MpqScalar(0)) == 0 || i.cmp(new MpqScalar(0)) == 1)
 							return false;
 					}
-					
+
 				}
 			}
 		}
