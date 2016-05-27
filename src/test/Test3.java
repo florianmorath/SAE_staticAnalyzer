@@ -1,4 +1,9 @@
-public class Test1 {
+// if clausel
+// NO_DIV_ZERO
+// NO_OUT_OF_BOUNDS
+// Timon Blattner timonbl@ethz.ch
+
+public class Test3 {
     public static void foo(int i) {
         int x = 0;
         if (i < 0) {
@@ -8,7 +13,7 @@ public class Test1 {
             x = i + 1;
         }
 
-        PrinterArray pa = new PrinterArray(2);
+        PrinterArray pa = new PrinterArray(x);
         pa.sendJob(i);
     }
 }

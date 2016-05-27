@@ -140,6 +140,7 @@ public class Verifier {
 				InvokeExpr e = ((JInvokeStmt) u).getInvokeExpr();
 				JimpleLocal constrLoc = (JimpleLocal)((JSpecialInvokeExpr) e).getBaseBox().getValue();
 				Value val = e.getArgBox(0).getValue();
+				//System.out.println("\n\n" + val.toString() + "\n\n");
 				int size = Integer.parseInt(val.toString());
 				paMapToSize.put(constrLoc, size);
 			}
