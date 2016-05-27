@@ -172,8 +172,8 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 
 		Texpr1Node resultNodeLR, resultNodeRL;
 
-        Tcons1 constraint = null;
-        Tcons1 constraintBranchout = null;
+		Tcons1 constraint = null;
+		Tcons1 constraintBranchout = null;
 
 		if (left instanceof IntConstant) {
 			lAr = new Texpr1CstNode(new MpqScalar(((IntConstant) left).value));
@@ -189,6 +189,7 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 					+ " name:" + ((JimpleLocal) left).getName());
 		}
 
+		
         if(right instanceof IntConstant) {
             rAr = new Texpr1CstNode(new MpqScalar(((IntConstant) right).value));
         }
@@ -233,9 +234,10 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
         branchout[0] = constraintBranchout;
         a1 = new Abstract1(man, fallout);
         a2 = new Abstract1(man, branchout);
-
-        ow.get().meet(man, a1);
-        ow_branchout.get().meet(man, a2);
+        
+        
+        ow.set(in.meetCopy(man, constraint));
+        ow_branchout.set(in.meetCopy(man, constraintBranchout));
 
 	}
 
@@ -330,6 +332,8 @@ public class Analysis extends ForwardBranchedFlowAnalysis<AWrapper> {
 				if (s.getInvokeExpr() instanceof JVirtualInvokeExpr) {
 					stateTracer.put((JVirtualInvokeExpr) s.getInvokeExpr(), o.joinCopy(man, o_branchout));
 				}
+				// TODO:
+				// else if s.getInvokeExpr() instance of JSpecialInvokeExpr constrTracer.put.(...)
 			}
 
 		} catch (ApronException e) {

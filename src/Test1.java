@@ -4,7 +4,11 @@
  */
 public class Test1 {
     public static void foo() {
-    	PrinterArray pa = new PrinterArray(5);
-        pa.sendJob(10);
+    	int x = 2;
+    	PrinterArray pa = new PrinterArray(2);
+    	while (x != 1) {
+    		if (x == 2)
+    			pa.sendJob(5);
+    	}
     }
 }
