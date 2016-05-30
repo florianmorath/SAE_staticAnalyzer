@@ -1,5 +1,5 @@
 // undefined arg n, division by 0 only for n!=0
-// theoretically NO_DIV_ZERO!!
+// NO_DIV_ZERO
 // NO_OUT_OF_BOUNDS
 // Elias August
 public class Test17 {
