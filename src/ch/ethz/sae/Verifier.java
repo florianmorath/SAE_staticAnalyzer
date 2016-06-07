@@ -101,7 +101,6 @@ public class Verifier {
 							return false;
 					} else if (divisor instanceof JimpleLocal) {
 						Interval i = fixPoint.getInterval(state, divisor);
-						System.out.println("" + i.cmp(new MpqScalar(0)));
 						if (i.cmp(new MpqScalar(0)) == 0 || i.cmp(new MpqScalar(0)) == 1)
 							return false;
 					}
